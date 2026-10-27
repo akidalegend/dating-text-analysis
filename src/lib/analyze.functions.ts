@@ -56,7 +56,7 @@ export const analyzeConversation = createServerFn({ method: "POST" })
       : [{ text: "Analyze the conversation in this screenshot." }, { inline_data: { mime_type: data.mimeType, data: data.imageBase64 } }];
 
     const res = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
       {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": key },
