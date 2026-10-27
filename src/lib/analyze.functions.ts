@@ -48,7 +48,7 @@ export const analyzeConversation = createServerFn({ method: "POST" })
     throw new Error("Provide a transcript or an image.");
   })
   .handler(async ({ data }): Promise<Analysis> => {
-    const key = process.env.GEMINI_API_KEY;
+    const key = process.env["GEMINI_API_KEY"];
     if (!key) throw new Error("GEMINI_API_KEY is not configured.");
 
     const parts = data.transcript

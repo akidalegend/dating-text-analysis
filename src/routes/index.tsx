@@ -81,7 +81,7 @@ function Index() {
     }
   };
   const done = status === "done" && !!result;
-  const tone = result ? Object.entries(result.toneRadar).map(([k, v]) => ({ k: k[0].toUpperCase() + k.slice(1), v })) : ["Playful","Distant","Flirty","Dry","Polite"].map((k) => ({ k, v: 0 }));
+  const tone = result ? Object.entries(result.toneRadar).map(([k, v]) => ({ k: k.charAt(0).toUpperCase() + k.slice(1), v })) : ["Playful","Distant","Flirty","Dry","Polite"].map((k) => ({ k, v: 0 }));
 
   const stage = progress < 30 ? "Parsing messages" : progress < 60 ? "Mapping turn-taking" : progress < 85 ? "Scoring tone vectors" : "Decoding subtext";
 
@@ -218,7 +218,7 @@ function Gauge({ value }: { value: number }) {
   );
 }
 
-function Imbalance({ data }: { data?: Analysis["engagementImbalance"] }) {
+function Imbalance({ data }: { data: Analysis["engagementImbalance"] | undefined }) {
   const a = Math.round(data?.userEffortPct ?? 50);
   const b = Math.round(data?.counterpartEffortPct ?? 50);
   const total = a + b || 1;
