@@ -48,7 +48,7 @@ export const analyzeConversation = createServerFn({ method: "POST" })
     throw new Error("Provide a transcript or an image.");
   })
   .handler(async ({ data }): Promise<Analysis> => {
-    const key = process.env.GEMINI_API_KEY;
+    const key = process.env["GEMINI_API_KEY"];
     if (!key) throw new Error("GEMINI_API_KEY is not configured.");
 
     const parts = data.transcript
@@ -56,7 +56,7 @@ export const analyzeConversation = createServerFn({ method: "POST" })
       : [{ text: "Analyze the conversation in this screenshot." }, { inline_data: { mime_type: data.mimeType, data: data.imageBase64 } }];
 
     const res = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
       {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": key },

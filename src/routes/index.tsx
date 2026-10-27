@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, FileText, ImageUp, ScanLine, Sparkles, X } from "lucide-react";
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
+import { analyzeConversation, type Analysis } from "@/lib/analyze.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,30 +30,15 @@ Sam: maybe, I'm pretty busy lately
 Alex: totally get it, no pressure haha
 Sam: ok`;
 
-const TONE = [
-  { k: "Warmth", a: 82, b: 28 },
-  { k: "Curiosity", a: 90, b: 15 },
-  { k: "Humor", a: 55, b: 10 },
-  { k: "Formality", a: 20, b: 45 },
-  { k: "Urgency", a: 60, b: 12 },
-  { k: "Avoidance", a: 10, b: 78 },
-];
+const toneColor = (v: number) => (v < 40 ? "var(--destructive)" : v < 70 ? "var(--warning)" : "var(--success)");
 
-const SUBTEXT = [
-  { line: "good", speaker: "Sam", literal: "The weekend was good.", sub: "Low investment; not inviting follow-up.", signal: "Disengaged", detail: "One-word reply with no reciprocal question. Typically signals limited bandwidth or interest." },
-  { line: "some friends", speaker: "Sam", literal: "Went with friends.", sub: "Withholding detail, maintaining distance.", signal: "Guarded", detail: "Vague answer to a direct question narrows the conversational surface." },
-  { line: "we should go together next time :)", speaker: "Alex", literal: "Proposal to hang out.", sub: "Testing interest with a soft invitation.", signal: "Bid", detail: "The emoji softens the ask, leaving room for both parties to save face." },
-  { line: "maybe, I'm pretty busy lately", speaker: "Sam", literal: "Possibly, but busy.", sub: "Polite decline without closing the door.", signal: "Deflection", detail: "'Busy' without a counter-offer is a common soft no." },
-  { line: "no pressure haha", speaker: "Alex", literal: "No obligation.", sub: "Retreating to reduce awkwardness.", signal: "Repair", detail: "Self-deprecating de-escalation after a perceived rejection." },
-];
-
-const signalTone: Record<string, string> = {
-  Disengaged: "text-destructive bg-destructive/10",
-  Guarded: "text-warning bg-warning/10",
-  Bid: "text-primary bg-primary/10",
-  Deflection: "text-destructive bg-destructive/10",
-  Repair: "text-accent bg-accent/10",
-};
+const fileToBase64 = (f: File) =>
+  new Promise<string>((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(",")[1] ?? "");
+    r.onerror = rej;
+    r.readAsDataURL(f);
+  });
 
 function Index() {
   const [tab, setTab] = useState<"paste" | "upload">("paste");
@@ -61,6 +47,8 @@ function Index() {
   const [drag, setDrag] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<Analysis | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const canAnalyze = tab === "paste" ? text.trim().length > 0 : !!file;
@@ -70,12 +58,30 @@ function Index() {
     setProgress(0);
     const id = setInterval(() => {
       setProgress((p) => {
-        if (p >= 100) { clearInterval(id); setStatus("done"); return 100; }
-        return Math.min(100, p + Math.random() * 9 + 3);
+        return Math.min(94, p + Math.random() * 6 + 1);
       });
     }, 120);
     return () => clearInterval(id);
   }, [status]);
+
+  const run = async () => {
+    setError(null);
+    setStatus("loading");
+    try {
+      const data = tab === "paste"
+        ? { transcript: text }
+        : { imageBase64: await fileToBase64(file!), mimeType: file!.type };
+      const r = await analyzeConversation({ data });
+      setProgress(100);
+      setResult(r);
+      setStatus("done");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Analysis failed.");
+      setStatus("idle");
+    }
+  };
+  const done = status === "done" && !!result;
+  const tone = result ? Object.entries(result.toneRadar).map(([k, v]) => ({ k: k.charAt(0).toUpperCase() + k.slice(1), v })) : ["Playful","Distant","Flirty","Dry","Polite"].map((k) => ({ k, v: 0 }));
 
   const stage = progress < 30 ? "Parsing messages" : progress < 60 ? "Mapping turn-taking" : progress < 85 ? "Scoring tone vectors" : "Decoding subtext";
 
@@ -138,7 +144,7 @@ function Index() {
             )}
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <button disabled={!canAnalyze || status === "loading"} onClick={() => setStatus("loading")}
+              <button disabled={!canAnalyze || status === "loading"} onClick={run}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-signal px-6 py-3 font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-40">
                 <ScanLine className="size-4" />{status === "loading" ? "Analyzing…" : "Analyze Conversation"}
               </button>
@@ -151,32 +157,31 @@ function Index() {
                   <p className="mt-1.5 font-mono text-xs text-muted-foreground">{stage}… {Math.round(progress)}%</p>
                 </div>
               )}
+              {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
           </div>
         </section>
 
-        <section className={cn("mt-10 grid gap-5 md:grid-cols-2 transition-opacity", status !== "done" && "opacity-40 pointer-events-none")}>
-          <ResultCard title="Interest Score" hint="Sam → Alex"><Gauge value={status === "done" ? 24 : 0} /></ResultCard>
-          <ResultCard title="Engagement Imbalance" hint="Share of effort"><Imbalance ready={status === "done"} /></ResultCard>
-          <ResultCard title="Tone Radar" hint="Alex vs Sam">
+        <section className={cn("mt-10 grid gap-5 md:grid-cols-2 transition-opacity", !done && "opacity-40 pointer-events-none")}>
+          <ResultCard title="Interest Score" hint="Their interest in you"><Gauge value={result?.interestScore ?? 0} /></ResultCard>
+          <ResultCard title="Engagement Imbalance" hint="Share of effort"><Imbalance data={result?.engagementImbalance} /></ResultCard>
+          <ResultCard title="Tone Radar" hint="Their tone">
             <div className="h-64">
               <ResponsiveContainer>
-                <RadarChart data={status === "done" ? TONE : TONE.map((t) => ({ ...t, a: 0, b: 0 }))}>
+                <RadarChart data={tone}>
                   <PolarGrid stroke="var(--border)" />
                   <PolarAngleAxis dataKey="k" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} />
-                  <Radar dataKey="a" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.25} />
-                  <Radar dataKey="b" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.25} />
+                  <Radar dataKey="v" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.3} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
-            <Legend />
           </ResultCard>
           <ResultCard title="Summary" hint="Overall read">
             <p className="text-sm leading-relaxed text-muted-foreground">
-              {status === "done" ? "Alex is carrying the conversation with questions and an invitation. Sam's short, guarded replies and a soft decline suggest low current interest." : "Run an analysis to see the summary."}
+              {result?.engagementImbalance.summary ?? "Run an analysis to see the summary."}
             </p>
           </ResultCard>
-          <div className="md:col-span-2"><ResultCard title="Subtext Breakdown" hint={`${SUBTEXT.length} signals`}><SubtextTable /></ResultCard></div>
+          <div className="md:col-span-2"><ResultCard title="Subtext Breakdown" hint={`${result?.subtextBreakdown.length ?? 0} signals`}><SubtextTable rows={result?.subtextBreakdown ?? []} /></ResultCard></div>
         </section>
       </main>
     </div>
@@ -197,7 +202,7 @@ function ResultCard({ title, hint, children }: { title: string; hint: string; ch
 
 function Gauge({ value }: { value: number }) {
   const r = 70, c = 2 * Math.PI * r;
-  const color = value < 40 ? "var(--destructive)" : value < 70 ? "var(--warning)" : "var(--success)";
+  const color = toneColor(value);
   return (
     <div className="flex flex-col items-center py-2">
       <svg viewBox="0 0 180 180" className="size-48 -rotate-90">
@@ -213,51 +218,40 @@ function Gauge({ value }: { value: number }) {
   );
 }
 
-function Imbalance({ ready }: { ready: boolean }) {
-  const a = ready ? 78 : 50;
+function Imbalance({ data }: { data: Analysis["engagementImbalance"] | undefined }) {
+  const a = Math.round(data?.userEffortPct ?? 50);
+  const b = Math.round(data?.counterpartEffortPct ?? 50);
+  const total = a + b || 1;
   return (
     <div className="space-y-5 py-4">
-      <div className="flex justify-between text-sm"><span className="text-primary">Alex · {a}%</span><span className="text-accent">Sam · {100 - a}%</span></div>
+      <div className="flex justify-between text-sm"><span className="text-primary">You · {a}%</span><span className="text-accent">Them · {b}%</span></div>
       <div className="flex h-4 overflow-hidden rounded-full bg-muted">
-        <div className="bg-primary transition-all duration-1000" style={{ width: `${a}%` }} />
+        <div className="bg-primary transition-all duration-1000" style={{ width: `${(a / total) * 100}%` }} />
         <div className="flex-1 bg-accent" />
       </div>
-      <div className="grid grid-cols-3 gap-3 text-center">
-        {[["Avg words", ready ? "11 / 2" : "–"], ["Questions", ready ? "3 / 0" : "–"], ["Initiations", ready ? "4 / 0" : "–"]].map(([l, v]) => (
-          <div key={l} className="rounded-lg bg-muted/50 p-3"><div className="font-mono text-sm">{v}</div><div className="text-xs text-muted-foreground">{l}</div></div>
-        ))}
-      </div>
+      <p className="text-sm text-muted-foreground">{data ? (a > b + 15 ? "You're carrying most of this conversation." : b > a + 15 ? "They're putting in more effort than you." : "Effort feels fairly balanced.") : "Waiting for analysis."}</p>
     </div>
   );
 }
 
-function Legend() {
-  return (
-    <div className="flex justify-center gap-5 text-xs text-muted-foreground">
-      <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-primary" />Alex</span>
-      <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-accent" />Sam</span>
-    </div>
-  );
-}
-
-function SubtextTable() {
+function SubtextTable({ rows }: { rows: Analysis["subtextBreakdown"] }) {
   const [open, setOpen] = useState<number | null>(null);
+  if (!rows.length) return <p className="text-sm text-muted-foreground">Key messages and what they really mean will appear here.</p>;
   return (
     <div className="overflow-hidden rounded-xl border border-border">
-      <div className="hidden grid-cols-[1.2fr_1fr_1.4fr_110px_32px] gap-4 bg-muted/50 px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground md:grid">
-        <span>Message</span><span>Literal</span><span>Subtext</span><span>Signal</span><span />
+      <div className="hidden grid-cols-[1.2fr_1fr_1.4fr_32px] gap-4 bg-muted/50 px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground md:grid">
+        <span>Message</span><span>Surface</span><span>Subtext</span><span />
       </div>
-      {SUBTEXT.map((r, i) => (
+      {rows.map((r, i) => (
         <div key={i} className="border-t border-border first:border-t-0">
           <button onClick={() => setOpen(open === i ? null : i)}
-            className="grid w-full grid-cols-1 gap-2 px-4 py-3 text-left text-sm transition hover:bg-muted/30 md:grid-cols-[1.2fr_1fr_1.4fr_110px_32px] md:items-center md:gap-4">
-            <span><span className="font-mono text-xs text-muted-foreground">{r.speaker}: </span>"{r.line}"</span>
-            <span className="text-muted-foreground">{r.literal}</span>
-            <span>{r.sub}</span>
-            <span className={cn("w-fit rounded-full px-2.5 py-0.5 text-xs font-medium", signalTone[r.signal])}>{r.signal}</span>
+            className="grid w-full grid-cols-1 gap-2 px-4 py-3 text-left text-sm transition hover:bg-muted/30 md:grid-cols-[1.2fr_1fr_1.4fr_32px] md:items-center md:gap-4">
+            <span>"{r.quote}"</span>
+            <span className="text-muted-foreground">{r.surfaceMeaning}</span>
+            <span>{r.subtextMeaning}</span>
             <ChevronDown className={cn("size-4 text-muted-foreground transition", open === i && "rotate-180")} />
           </button>
-          {open === i && <div className="bg-background/40 px-4 py-3 text-sm text-muted-foreground">{r.detail}</div>}
+          {open === i && <div className="bg-background/40 px-4 py-3 text-sm"><span className="font-medium text-primary">Advice: </span><span className="text-muted-foreground">{r.actionableAdvice}</span></div>}
         </div>
       ))}
     </div>
