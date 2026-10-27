@@ -87,7 +87,7 @@ export const analyzeConversation = createServerFn({ method: "POST" })
         polite: clamp(r.toneRadar?.polite),
       },
       subtextBreakdown: Array.isArray(r.subtextBreakdown)
-        ? r.subtextBreakdown.map((s: Record<string, unknown>) => ({
+        ? r.subtextBreakdown.map((s: Partial<Analysis["subtextBreakdown"][number]>) => ({
             quote: String(s.quote ?? ""),
             surfaceMeaning: String(s.surfaceMeaning ?? ""),
             subtextMeaning: String(s.subtextMeaning ?? ""),
