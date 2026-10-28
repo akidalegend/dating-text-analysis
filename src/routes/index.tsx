@@ -236,7 +236,7 @@ function Gauge({ value }: { value: number }) {
   );
 }
 
-function Imbalance({ data, name }: { data: Analysis["engagementImbalance"] | undefined; name?: string }) {
+function Imbalance({ data, name }: { data: Analysis["engagementImbalance"] | undefined; name?: string | undefined }) {
   const a = Math.round(data?.userEffortPct ?? 50);
   const b = Math.round(data?.counterpartEffortPct ?? 50);
   const total = a + b || 1;
