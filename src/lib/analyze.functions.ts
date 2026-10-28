@@ -11,6 +11,8 @@ export type Analysis = {
     actionableAdvice: string;
   }[];
   lastMessage: string;
+  counterpartName: string;
+  flirtMeter: { score: number; verdict: string };
   replies: { playboy: string; loverBoy: string; neutral: string; breakUp: string };
 };
 
@@ -25,6 +27,8 @@ Assess:
 - engagementImbalance: share of conversational effort from each side (userEffortPct + counterpartEffortPct = 100) and a one-sentence summary.
 - toneRadar: the counterpart's tone on five axes, each 0-100: playful, distant, flirty, dry, polite.
 - subtextBreakdown: 3-6 key quotes, each with surfaceMeaning, subtextMeaning and concrete, kind actionableAdvice for the user.
+- counterpartName: the counterpart's name. For screenshots, read it from the chat header at the top (contact name/title); otherwise from the transcript speaker labels. Use "" if unknown.
+- flirtMeter: score 0-100 where 0 = purely friendly banter and 100 = clearly flirting, judged only from the messages, plus a one-sentence verdict citing the signals.
 - lastMessage: the last message the counterpart sent.
 - replies: a ready-to-send reply from the user to that last message in four personas (short, natural texting style):
   - playboy: confident, cheeky, teasing, unbothered.
@@ -32,10 +36,10 @@ Assess:
   - neutral: friendly, balanced, low-pressure.
   - breakUp: polite, clear, ends things kindly.
 
-If given a screenshot, read the messages from it first. Be honest but constructive.
+If given a screenshot, first read the chat header name, then the messages; bubbles on the right are the user, left are the counterpart. Be honest but constructive.
 
 Respond ONLY with JSON in exactly this shape:
-{"interestScore":number,"engagementImbalance":{"userEffortPct":number,"counterpartEffortPct":number,"summary":string},"toneRadar":{"playful":number,"distant":number,"flirty":number,"dry":number,"polite":number},"subtextBreakdown":[{"quote":string,"surfaceMeaning":string,"subtextMeaning":string,"actionableAdvice":string}],"lastMessage":string,"replies":{"playboy":string,"loverBoy":string,"neutral":string,"breakUp":string}}`;
+{"interestScore":number,"engagementImbalance":{"userEffortPct":number,"counterpartEffortPct":number,"summary":string},"toneRadar":{"playful":number,"distant":number,"flirty":number,"dry":number,"polite":number},"subtextBreakdown":[{"quote":string,"surfaceMeaning":string,"subtextMeaning":string,"actionableAdvice":string}],"counterpartName":string,"flirtMeter":{"score":number,"verdict":string},"lastMessage":string,"replies":{"playboy":string,"loverBoy":string,"neutral":string,"breakUp":string}}`;
 
 const clamp = (n: unknown) => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
 
@@ -102,6 +106,8 @@ export const analyzeConversation = createServerFn({ method: "POST" })
             actionableAdvice: String(s.actionableAdvice ?? ""),
           }))
         : [],
+      counterpartName: String(r.counterpartName ?? ""),
+      flirtMeter: { score: clamp(r.flirtMeter?.score), verdict: String(r.flirtMeter?.verdict ?? "") },
       lastMessage: String(r.lastMessage ?? ""),
       replies: {
         playboy: String(r.replies?.playboy ?? ""),
