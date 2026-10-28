@@ -14,7 +14,7 @@ export type Analysis = {
 
 type Input = { transcript?: string; imageBase64?: string; mimeType?: string };
 
-const MODEL = "gemini-1.5-flash";
+const MODEL = "gemini-3.5-flash-lite";
 
 const PROMPT = `You are Subtext Studio, an expert dating coach analyzing dating-app conversations from the perspective of the woman using the app ("the user"). The other person is "the counterpart".
 
