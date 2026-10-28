@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, FileText, ImageUp, ScanLine, Sparkles, X } from "lucide-react";
+import { ChevronDown, Download, FileText, ImageUp, ScanLine, Sparkles, X } from "lucide-react";
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
 import { analyzeConversation, type Analysis } from "@/lib/analyze.functions";
+import { SAMPLE_PRESETS, renderPreset } from "@/lib/sample-screenshots";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -98,12 +99,12 @@ function Index() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <section className="mb-8">
+        <section className="mb-8 print:hidden">
           <h1 className="font-display text-4xl font-semibold tracking-tight md:text-5xl">Read between the lines.</h1>
           <p className="mt-3 max-w-xl text-muted-foreground">Drop in any conversation to measure interest, balance, tone and the meaning behind each message.</p>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-2 shadow-glow">
+        <section className="rounded-2xl border border-border bg-card p-2 shadow-glow print:hidden">
           <div className="flex gap-1 rounded-xl bg-muted/50 p-1">
             {([["paste", "Paste Transcript", FileText], ["upload", "Upload Screenshot", ImageUp]] as const).map(([k, label, Icon]) => (
               <button key={k} onClick={() => setTab(k)}
@@ -138,6 +139,13 @@ function Index() {
                     <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary"><ImageUp className="size-6" /></div>
                     <p className="font-medium">Drop a chat screenshot here</p>
                     <p className="text-sm text-muted-foreground">PNG, JPG or WebP from WhatsApp, iMessage, Slack…</p>
+                    <div className="mt-2 flex flex-wrap justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <span className="w-full text-xs text-muted-foreground">or try a sample:</span>
+                      {SAMPLE_PRESETS.map((p) => (
+                        <button key={p.id} onClick={async () => setFile(await renderPreset(p))}
+                          className="rounded-full border border-border px-3 py-1 text-xs hover:border-primary hover:text-primary">{p.label}</button>
+                      ))}
+                    </div>
                   </>
                 )}
               </div>
@@ -162,7 +170,15 @@ function Index() {
           </div>
         </section>
 
-        <section className={cn("mt-10 grid gap-5 md:grid-cols-2 transition-opacity", !done && "opacity-40 pointer-events-none")}>
+        {done && (
+          <div className="mt-10 flex justify-end print:hidden">
+            <button onClick={() => window.print()}
+              className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm hover:border-primary hover:text-primary">
+              <Download className="size-4" />Download PDF report
+            </button>
+          </div>
+        )}
+        <section className={cn("mt-4 grid gap-5 md:grid-cols-2 transition-opacity print:mt-0", !done && "mt-10 opacity-40 pointer-events-none")}>
           <ResultCard title="Interest Score" hint="Their interest in you"><Gauge value={result?.interestScore ?? 0} /></ResultCard>
           <ResultCard title="Engagement Imbalance" hint="Share of effort"><Imbalance data={result?.engagementImbalance} /></ResultCard>
           <ResultCard title="Tone Radar" hint="Their tone">
