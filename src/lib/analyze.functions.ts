@@ -10,6 +10,8 @@ export type Analysis = {
     subtextMeaning: string;
     actionableAdvice: string;
   }[];
+  lastMessage: string;
+  replies: { playboy: string; loverBoy: string; neutral: string; breakUp: string };
 };
 
 type Input = { transcript?: string; imageBase64?: string; mimeType?: string };
@@ -23,11 +25,17 @@ Assess:
 - engagementImbalance: share of conversational effort from each side (userEffortPct + counterpartEffortPct = 100) and a one-sentence summary.
 - toneRadar: the counterpart's tone on five axes, each 0-100: playful, distant, flirty, dry, polite.
 - subtextBreakdown: 3-6 key quotes, each with surfaceMeaning, subtextMeaning and concrete, kind actionableAdvice for the user.
+- lastMessage: the last message the counterpart sent.
+- replies: a ready-to-send reply from the user to that last message in four personas (short, natural texting style):
+  - playboy: confident, cheeky, teasing, unbothered.
+  - loverBoy: warm, romantic, openly affectionate.
+  - neutral: friendly, balanced, low-pressure.
+  - breakUp: polite, clear, ends things kindly.
 
 If given a screenshot, read the messages from it first. Be honest but constructive.
 
 Respond ONLY with JSON in exactly this shape:
-{"interestScore":number,"engagementImbalance":{"userEffortPct":number,"counterpartEffortPct":number,"summary":string},"toneRadar":{"playful":number,"distant":number,"flirty":number,"dry":number,"polite":number},"subtextBreakdown":[{"quote":string,"surfaceMeaning":string,"subtextMeaning":string,"actionableAdvice":string}]}`;
+{"interestScore":number,"engagementImbalance":{"userEffortPct":number,"counterpartEffortPct":number,"summary":string},"toneRadar":{"playful":number,"distant":number,"flirty":number,"dry":number,"polite":number},"subtextBreakdown":[{"quote":string,"surfaceMeaning":string,"subtextMeaning":string,"actionableAdvice":string}],"lastMessage":string,"replies":{"playboy":string,"loverBoy":string,"neutral":string,"breakUp":string}}`;
 
 const clamp = (n: unknown) => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
 
@@ -94,5 +102,12 @@ export const analyzeConversation = createServerFn({ method: "POST" })
             actionableAdvice: String(s.actionableAdvice ?? ""),
           }))
         : [],
+      lastMessage: String(r.lastMessage ?? ""),
+      replies: {
+        playboy: String(r.replies?.playboy ?? ""),
+        loverBoy: String(r.replies?.loverBoy ?? ""),
+        neutral: String(r.replies?.neutral ?? ""),
+        breakUp: String(r.replies?.breakUp ?? ""),
+      },
     };
   });

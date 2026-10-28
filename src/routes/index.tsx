@@ -198,6 +198,7 @@ function Index() {
             </p>
           </ResultCard>
           <div className="md:col-span-2"><ResultCard title="Subtext Breakdown" hint={`${result?.subtextBreakdown.length ?? 0} signals`}><SubtextTable rows={result?.subtextBreakdown ?? []} /></ResultCard></div>
+          <div className="md:col-span-2"><ResultCard title="Reply Advice" hint="Pick a persona"><Replies data={result} /></ResultCard></div>
         </section>
       </main>
     </div>
@@ -246,6 +247,36 @@ function Imbalance({ data }: { data: Analysis["engagementImbalance"] | undefined
         <div className="flex-1 bg-accent" />
       </div>
       <p className="text-sm text-muted-foreground">{data ? (a > b + 15 ? "You're carrying most of this conversation." : b > a + 15 ? "They're putting in more effort than you." : "Effort feels fairly balanced.") : "Waiting for analysis."}</p>
+    </div>
+  );
+}
+
+const PERSONAS = [
+  ["playboy", "Playboy"],
+  ["loverBoy", "Lover Boy"],
+  ["neutral", "Neutral"],
+  ["breakUp", "Break-up Mode"],
+] as const;
+
+function Replies({ data }: { data: Analysis | null }) {
+  const [p, setP] = useState<(typeof PERSONAS)[number][0]>("neutral");
+  const [copied, setCopied] = useState(false);
+  if (!data) return <p className="text-sm text-muted-foreground">Suggested replies to their last message will appear here.</p>;
+  const reply = data.replies[p];
+  return (
+    <div className="space-y-4">
+      {data.lastMessage && <p className="text-sm text-muted-foreground">Their last message: <span className="text-foreground">"{data.lastMessage}"</span></p>}
+      <div className="flex flex-wrap gap-2 print:hidden">
+        {PERSONAS.map(([k, label]) => (
+          <button key={k} onClick={() => { setP(k); setCopied(false); }}
+            className={cn("rounded-full border px-3 py-1 text-xs transition", p === k ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/50")}>{label}</button>
+        ))}
+      </div>
+      <div className="flex items-start justify-between gap-3 rounded-xl border border-border bg-background/40 p-4">
+        <p className="text-sm leading-relaxed">{reply || "No suggestion for this persona."}</p>
+        {reply && <button onClick={() => { navigator.clipboard.writeText(reply); setCopied(true); }}
+          className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-xs hover:border-primary hover:text-primary print:hidden">{copied ? "Copied" : "Copy"}</button>}
+      </div>
     </div>
   );
 }
