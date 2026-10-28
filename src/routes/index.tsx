@@ -180,7 +180,7 @@ function Index() {
         )}
         <section className={cn("mt-4 grid gap-5 md:grid-cols-2 transition-opacity print:mt-0", !done && "mt-10 opacity-40 pointer-events-none")}>
           <ResultCard title="Interest Score" hint="Their interest in you"><Gauge value={result?.interestScore ?? 0} /></ResultCard>
-          <ResultCard title="Engagement Imbalance" hint="Share of effort"><Imbalance data={result?.engagementImbalance} /></ResultCard>
+          <ResultCard title="Engagement Imbalance" hint="Share of effort"><Imbalance data={result?.engagementImbalance} name={result?.counterpartName} /></ResultCard>
           <ResultCard title="Tone Radar" hint="Their tone">
             <div className="h-64">
               <ResponsiveContainer>
@@ -197,6 +197,7 @@ function Index() {
               {result?.engagementImbalance.summary ?? "Run an analysis to see the summary."}
             </p>
           </ResultCard>
+          <div className="md:col-span-2"><ResultCard title="Banter or Flirting?" hint={result?.counterpartName ? `Reading ${result.counterpartName}` : "Their intent"}><FlirtMeter data={result?.flirtMeter} /></ResultCard></div>
           <div className="md:col-span-2"><ResultCard title="Subtext Breakdown" hint={`${result?.subtextBreakdown.length ?? 0} signals`}><SubtextTable rows={result?.subtextBreakdown ?? []} /></ResultCard></div>
           <div className="md:col-span-2"><ResultCard title="Reply Advice" hint="Pick a persona"><Replies data={result} /></ResultCard></div>
         </section>
@@ -235,13 +236,13 @@ function Gauge({ value }: { value: number }) {
   );
 }
 
-function Imbalance({ data }: { data: Analysis["engagementImbalance"] | undefined }) {
+function Imbalance({ data, name }: { data: Analysis["engagementImbalance"] | undefined; name?: string | undefined }) {
   const a = Math.round(data?.userEffortPct ?? 50);
   const b = Math.round(data?.counterpartEffortPct ?? 50);
   const total = a + b || 1;
   return (
     <div className="space-y-5 py-4">
-      <div className="flex justify-between text-sm"><span className="text-primary">You · {a}%</span><span className="text-accent">Them · {b}%</span></div>
+      <div className="flex justify-between text-sm"><span className="text-primary">You · {a}%</span><span className="text-accent">{name || "Them"} · {b}%</span></div>
       <div className="flex h-4 overflow-hidden rounded-full bg-muted">
         <div className="bg-primary transition-all duration-1000" style={{ width: `${(a / total) * 100}%` }} />
         <div className="flex-1 bg-accent" />
@@ -301,6 +302,19 @@ function SubtextTable({ rows }: { rows: Analysis["subtextBreakdown"] }) {
           {open === i && <div className="bg-background/40 px-4 py-3 text-sm"><span className="font-medium text-primary">Advice: </span><span className="text-muted-foreground">{r.actionableAdvice}</span></div>}
         </div>
       ))}
+    </div>
+  );
+}
+
+function FlirtMeter({ data }: { data: Analysis["flirtMeter"] | undefined }) {
+  const v = data?.score ?? 50;
+  return (
+    <div className="space-y-3 py-2">
+      <div className="flex justify-between text-sm"><span className="text-muted-foreground">Friendly banter</span><span className="text-accent">Flirting</span></div>
+      <div className="relative h-3 rounded-full bg-gradient-to-r from-muted via-primary/60 to-accent">
+        <div className="absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-foreground transition-all duration-1000" style={{ left: `${v}%` }} />
+      </div>
+      <p className="text-sm text-muted-foreground">{data ? <><span className="font-medium text-foreground">{v}/100 · </span>{data.verdict}</> : "Waiting for analysis."}</p>
     </div>
   );
 }
