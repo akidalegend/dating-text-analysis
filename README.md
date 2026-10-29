@@ -1,14 +1,22 @@
-# Welcome to your Lovable project
+# Chat Subtext Compass
+
+Create a modern conversational intelligence tool called 'Subtext Studio'. Use a dark slate modern theme (#0D1117). Create an input workspace with two tabs:
+
+'Paste Transcript' (a multi-line textarea with a sample conversation pre-loaded).
+
+'Upload Screenshot' (a dropzone for chat exports). Add an 'Analyze Conversation' button that triggers a loading state with an animated scanning progress bar. Prepare the layout for four result cards: a circular Interest Score gauge, an Engagement Imbalance bar, a Tone Radar chart, and an expandable Subtext Breakdown table.
 
 This project was built with [Lovable](https://lovable.dev).
 
+**Live app**: https://chat-subtext-compass.lovable.app
+
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/2c83a97b-3032-4b37-bfa3-72e6295a181d).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +28,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
