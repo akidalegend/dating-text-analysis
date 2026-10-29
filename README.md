@@ -1,4 +1,4 @@
-# Chat Subtext Compass
+# Dating Text Analysis
 
 Create a modern conversational intelligence tool called 'Subtext Studio'. Use a dark slate modern theme (#0D1117). Create an input workspace with two tabs:
 
